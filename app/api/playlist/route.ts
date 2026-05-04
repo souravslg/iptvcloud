@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing credentials', { status: 400 });
   }
 
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
 
   // Get user from DB

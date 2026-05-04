@@ -7,7 +7,7 @@ import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const allUsers = await db.query.users.findMany();
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const body = await request.json();
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const body = await request.json();
@@ -53,7 +53,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const { id } = await request.json();

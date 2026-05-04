@@ -7,7 +7,7 @@ import { settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const allSettings = await db.query.settings.findMany();
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const env = getRequestContext().env as { DB: D1Database };
+  const env = getRequestContext().env as any;
   const db = getDb(env.DB);
   
   const body = await request.json();
