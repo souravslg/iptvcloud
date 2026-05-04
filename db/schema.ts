@@ -6,6 +6,7 @@ export const users = sqliteTable('users', {
   password: text('password').notNull(),
   validUntil: integer('valid_until', { mode: 'timestamp' }).notNull(),
   isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+  sourceM3u: text('source_m3u'),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 });
 

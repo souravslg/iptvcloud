@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `source_m3u` text;

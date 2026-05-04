@@ -1,10 +1,10 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-// In a real implementation with Drizzle we would use:
-// import { db } from '@/db';
-// import { users, settings } from '@/db/schema';
-// import { eq, and } from 'drizzle-orm';
+import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getDb } from '@/db';
+import { users, settings } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -15,38 +15,53 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Missing credentials', { status: 400 });
   }
 
-  // --- Drizzle ORM mock logic start ---
-  // const user = await db.select().from(users).where(and(eq(users.username, username), eq(users.password, password))).get();
-  // const masterPlaylistUrl = await db.select().from(settings).where(eq(settings.key, 'master_playlist')).get();
-  // --- Drizzle ORM mock logic end ---
+  const env = getRequestContext().env as { DB: D1Database };
+  const db = getDb(env.DB);
 
-  // Mocking database check for demonstration
-  const isValidUser = username === 'admin' && password === 'admin';
-  const isExpired = false; // Mock
+  // Get user from DB
+  const user = await db.query.users.findFirst({
+    where: and(eq(users.username, username), eq(users.password, password))
+  });
 
-  if (!isValidUser) {
+  if (!user) {
     return new NextResponse('Invalid credentials', { status: 401 });
   }
 
-  if (isExpired) {
+  // Check if suspended or expired
+  const isExpired = new Date(user.validUntil) < new Date();
+  if (isExpired || !user.isActive) {
     return new NextResponse(
-      '#EXTM3U\n#EXTINF:-1, [EXPIRED] Your subscription has expired\nhttp://dummy-video.local/expired.mp4',
+      `#EXTM3U\n#EXTINF:-1, [${!user.isActive ? 'SUSPENDED' : 'EXPIRED'}] Your subscription is not active\nhttp://dummy-video.local/inactive.mp4`,
       { status: 200, headers: { 'Content-Type': 'application/x-mpegurl' } }
     );
   }
 
-  // Fetch from master playlist
-  // const response = await fetch(masterPlaylistUrl.value);
-  // const playlistData = await response.text();
+  // Get source URL (either user-specific or global)
+  let masterPlaylistUrl = user.sourceM3u;
   
-  // Mock playlist data
-  const playlistData = `#EXTM3U\n#EXTINF:-1 tvg-id="CNN" tvg-name="CNN" tvg-logo="https://example.com/cnn.png" group-title="News",CNN (HD)\nhttp://example.com/live/cnn/index.m3u8`;
+  if (!masterPlaylistUrl) {
+    const globalSetting = await db.query.settings.findFirst({
+      where: eq(settings.key, 'master_playlist')
+    });
+    masterPlaylistUrl = globalSetting?.value;
+  }
 
-  return new NextResponse(playlistData, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/x-mpegurl',
-      'Content-Disposition': `attachment; filename="playlist_${username}.m3u"`
-    }
-  });
+  if (!masterPlaylistUrl) {
+    return new NextResponse('No source playlist configured', { status: 500 });
+  }
+
+  try {
+    const response = await fetch(masterPlaylistUrl);
+    const playlistData = await response.text();
+
+    return new NextResponse(playlistData, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/x-mpegurl',
+        'Content-Disposition': `attachment; filename="playlist_${username}.m3u"`
+      }
+    });
+  } catch (error) {
+    return new NextResponse('Error fetching source playlist', { status: 502 });
+  }
 }
