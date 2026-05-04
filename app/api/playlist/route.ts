@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Get source URL (either user-specific or global)
-  let masterPlaylistUrl = user.sourceM3u;
+  let masterPlaylistUrl: string | null | undefined = user.sourceM3u;
   
   if (!masterPlaylistUrl) {
     const globalSetting = await db.query.settings.findFirst({
