@@ -1,22 +1,19 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-import { getDb } from '@/db';
+import { getDbFromContext } from '@/db';
 import { users } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const allUsers = await db.query.users.findMany();
   return NextResponse.json(allUsers);
 }
 
 export async function POST(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const body = await request.json();
   const { username, password, validUntil, isActive, sourceM3u } = body;
@@ -34,8 +31,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const body = await request.json();
   const { id, ...updates } = body;
@@ -53,8 +49,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const { id } = await request.json();
   await db.delete(users).where(eq(users.id, id));

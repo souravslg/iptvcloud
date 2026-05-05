@@ -1,22 +1,19 @@
 export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getRequestContext } from '@cloudflare/next-on-pages';
-import { getDb } from '@/db';
+import { getDbFromContext } from '@/db';
 import { settings } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const allSettings = await db.query.settings.findMany();
   return NextResponse.json(allSettings);
 }
 
 export async function POST(request: NextRequest) {
-  const env = getRequestContext().env as any;
-  const db = getDb(env.DB);
+  const db = getDbFromContext();
   
   const body = await request.json();
   const { key, value } = body;
