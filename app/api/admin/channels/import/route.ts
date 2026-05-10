@@ -44,9 +44,17 @@ export async function POST(request: NextRequest) {
         const group = groupMatch ? groupMatch[1] : 'General';
         
         let url = '';
+        let clearkey = '';
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
-          if (nextLine && !nextLine.startsWith('#')) {
+          if (!nextLine) continue;
+          
+          if (nextLine.startsWith('#KODIPROP:inputstream.adaptive.license_key=')) {
+            clearkey = nextLine.split('=')[1]?.trim() || '';
+            continue;
+          }
+          
+          if (!nextLine.startsWith('#')) {
             url = nextLine;
             i = j;
             break;
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
         }
         
         if (url) {
-          parsedChannels.push({ name, logo, group, url });
+          parsedChannels.push({ name, logo, group, url, clearkey });
         }
       }
     }
@@ -93,4 +101,3 @@ export async function POST(request: NextRequest) {
   }
 }
 
-import { and } from 'drizzle-orm';
