@@ -1,26 +1,22 @@
-export const runtime = 'edge';
+﻿export const runtime = 'edge';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getDbFromContext } from '@/db';
-import { settings, channels } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import { getDb } from '@/db';
 
 export async function POST(request: NextRequest) {
-  const db = getDbFromContext();
-  
-  const globalSetting = await db.query.settings.findFirst({
-    where: eq(settings.key, 'master_playlist')
-  });
-  
-  const masterUrl = globalSetting?.value;
-  if (!masterUrl) {
-    return NextResponse.json({ error: 'No master playlist URL configured' }, { status: 400 });
-  }
-
   try {
+    const db = getDb();
+    
+    const settingRow = await db.prepare("SELECT value FROM settings WHERE key = 'master_playlist'").first() as any;
+    const masterUrl = settingRow?.value;
+    
+    if (!masterUrl) {
+      return NextResponse.json({ error: 'No master playlist URL configured' }, { status: 400 });
+    }
+
     const response = await fetch(masterUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       }
     });
     
@@ -31,7 +27,7 @@ export async function POST(request: NextRequest) {
     const m3uText = await response.text();
     const lines = m3uText.split(/\r?\n/);
     
-    const parsedChannels = [];
+    const parsedChannels: any[] = [];
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (line.startsWith('#EXTINF:')) {
@@ -48,12 +44,10 @@ export async function POST(request: NextRequest) {
         for (let j = i + 1; j < lines.length; j++) {
           const nextLine = lines[j].trim();
           if (!nextLine) continue;
-          
           if (nextLine.startsWith('#KODIPROP:inputstream.adaptive.license_key=')) {
-            clearkey = nextLine.split('=')[1]?.trim() || '';
+            clearkey = nextLine.split('=').slice(1).join('=').trim();
             continue;
           }
-          
           if (!nextLine.startsWith('#')) {
             url = nextLine;
             i = j;
@@ -67,37 +61,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (parsedChannels.length > 0) {
-      // 1. Get existing channels to avoid duplicates
-      const existing = await db.query.channels.findMany({
-        columns: { name: true, url: true }
-      });
-      const existingSet = new Set(existing.map((e: any) => `${e.name}|${e.url}`));
-
-      // 2. Filter new channels
-      const toInsert = parsedChannels
-        .filter(c => !existingSet.has(`${c.name}|${c.url}`))
-        .map(c => ({
-          ...c,
-          isMpd: c.url.toLowerCase().includes('.mpd'),
-          isActive: true,
-          createdAt: new Date()
-        }));
-
-      // 3. Batch insert in chunks of 100
-      const chunkSize = 100;
-      for (let i = 0; i < toInsert.length; i += chunkSize) {
-        const chunk = toInsert.slice(i, i + chunkSize);
-        await db.insert(channels).values(chunk);
-      }
-
-      return NextResponse.json({ success: true, count: toInsert.length });
+    if (parsedChannels.length === 0) {
+      return NextResponse.json({ success: true, count: 0 });
     }
 
-    return NextResponse.json({ success: true, count: 0 });
-  } catch (error) {
-    console.error('Import error:', error);
-    return NextResponse.json({ error: 'Internal server error during import' }, { status: 500 });
+    // Get existing channels to avoid duplicates
+    const existing = await db.prepare('SELECT name, url FROM channels').all();
+    const existingSet = new Set((existing.results || []).map((e: any) => `${e.name}|${e.url}`));
+
+    const toInsert = parsedChannels.filter(c => !existingSet.has(`${c.name}|${c.url}`));
+    const createdAt = Math.floor(Date.now() / 1000);
+
+    // Insert in batches of 50
+    const chunkSize = 50;
+    for (let i = 0; i < toInsert.length; i += chunkSize) {
+      const chunk = toInsert.slice(i, i + chunkSize);
+      const stmt = db.prepare(
+        'INSERT OR IGNORE INTO channels (name, logo, group_title, url, is_mpd, clearkey, is_active, created_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?)'
+      );
+      const batch = chunk.map(c => stmt.bind(
+        c.name, c.logo || '', c.group || 'General', c.url,
+        c.url.toLowerCase().includes('.mpd') ? 1 : 0,
+        c.clearkey || '', createdAt
+      ));
+      await db.batch(batch);
+    }
+
+    return NextResponse.json({ success: true, count: toInsert.length });
+  } catch (e: any) {
+    console.error('Import error:', e);
+    return NextResponse.json({ error: e.message || 'Internal server error' }, { status: 500 });
   }
 }
-
