@@ -5,11 +5,11 @@ export const runtime = "edge";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const db = await getDb();
-    const { token } = params;
+    const { token } = await params;
 
     // 1. Verify User Token (We'll use username as token for now, or ID)
     const user = await db.prepare("SELECT * FROM users WHERE username = ? AND is_active = 1").bind(token).first();
