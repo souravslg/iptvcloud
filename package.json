@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "opennextjs-cloudflare && wrangler pages deploy .worker-next/out"
+    "pages:build": "opennextjs-cloudflare",
+    "deploy": "npm run pages:build && wrangler pages deploy .worker-next/out"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "^0.3.0",
