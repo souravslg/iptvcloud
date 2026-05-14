@@ -328,12 +328,13 @@ function SettingsPanel() {
   return (
     <div>
       <h3 style={{ marginBottom: "20px" }}>Server Settings</h3>
-      {loading ? <p>Loading...</p> : (
-        error ? (
-          <div style={{ color: "#ff4444", padding: "10px", background: "rgba(255,0,0,0.1)", borderRadius: "5px" }}>
-            {error}. Make sure the D1 database is correctly bound and migrations have been run.
-          </div>
-        ) : (
+      {loading ? (
+        <p>Loading...</p>
+      ) : error ? (
+        <div style={{ color: "#ff4444", padding: "10px", background: "rgba(255,0,0,0.1)", borderRadius: "5px" }}>
+          {error}. Make sure the D1 database is correctly bound and migrations have been run.
+        </div>
+      ) : (
         <>
           <div className="input-group">
             <label>Master Playlist URL (Global Default)</label>
