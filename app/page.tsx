@@ -48,6 +48,43 @@ export default function Dashboard() {
     }
   };
 
+  const handleSync = async (providerId: number) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/admin/providers/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ providerId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      alert(`Successfully synced ${data.count} channels!`);
+      fetchData();
+    } catch (err: any) {
+      alert(`Sync failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddProvider = async () => {
+    const name = prompt("Provider Name:");
+    const url = prompt("M3U URL:");
+    if (!name || !url) return;
+
+    try {
+      const res = await fetch('/api/admin/providers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, url })
+      });
+      if (!res.ok) throw new Error("Failed to add provider");
+      fetchData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
@@ -171,7 +208,11 @@ export default function Dashboard() {
 
         {activeTab === 'providers' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', borderStyle: 'dashed' }}>
+            <div 
+              className="glass-card" 
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px', borderStyle: 'dashed', cursor: 'pointer' }}
+              onClick={handleAddProvider}
+            >
               <Plus size={48} color="var(--text-secondary)" style={{ marginBottom: '20px' }} />
               <h3 style={{ color: 'var(--text-secondary)' }}>Add New Provider</h3>
               <p style={{ textAlign: 'center', fontSize: '0.9rem', marginTop: '10px', color: 'var(--text-secondary)' }}>Import M3U or Xtream Codes playlists</p>
@@ -180,12 +221,16 @@ export default function Dashboard() {
               <div key={p.id} className="glass-card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                   <Tv size={24} color="var(--accent-color)" />
-                  <span className="badge badge-success">Online</span>
+                  <span className={`badge ${p.last_sync ? 'badge-success' : 'badge-danger'}`}>
+                    {p.last_sync ? 'Synced' : 'New'}
+                  </span>
                 </div>
                 <h3>{p.name}</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>{p.url}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.url}</p>
                 <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                  <button className="btn" style={{ flex: 1, marginRight: '10px' }}><RefreshCw size={14} /> Sync</button>
+                  <button className="btn btn-primary" style={{ flex: 1, marginRight: '10px' }} onClick={() => handleSync(p.id)}>
+                    <RefreshCw size={14} className={loading ? 'spin' : ''} /> Sync
+                  </button>
                   <button className="btn danger" style={{ padding: '10px' }}><Trash2 size={16} /></button>
                 </div>
               </div>
