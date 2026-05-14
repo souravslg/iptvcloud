@@ -1,9 +1,14 @@
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-export function getDb() {
-  const env = getRequestContext().env as any;
+export async function getDb() {
+  const { env } = await getCloudflareContext();
   if (!env || !env.DB) {
-    throw new Error('D1 database binding (DB) is not available');
+    throw new Error("Cloudflare D1 database binding (DB) is missing. Check your wrangler.toml and Cloudflare dashboard settings.");
   }
-  return env.DB as any;
+  return env.DB;
+}
+
+export async function getEnv() {
+  const { env } = await getCloudflareContext();
+  return env;
 }

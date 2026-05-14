@@ -2,26 +2,23 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IPTV Admin Panel",
-  description: "Premium IPTV management panel with validity features.",
+  title: "IPTV Edge | Premium Management",
+  description: "High-performance serverless IPTV management panel for Cloudflare.",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="en">
-      <body>
-        <header className="header">
-          <h2>IPTV Cloud Panel</h2>
-          <div>
-            <span style={{ color: "var(--text-secondary)" }}>Admin</span>
-          </div>
-        </header>
-        <main className="container">{children}</main>
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }

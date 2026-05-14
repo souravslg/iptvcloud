@@ -1,10 +1,12 @@
 name = "iptv-panel"
-compatibility_date = "2024-03-20"
-compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".vercel/output/static"
+pages_build_output_dir = ".worker-next/out"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "iptv-panel-db"
 database_id = "4e96f61b-8471-4dd7-93b4-e424c9c53e2f"
 migrations_dir = "drizzle"
+
+[vars]
+JWT_SECRET = "change-me-to-a-secure-random-string"
+ADMIN_PASSWORD = "admin"

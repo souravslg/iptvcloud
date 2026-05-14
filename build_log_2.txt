@@ -1,7 +1,0 @@
-﻿
-> iptv-panel-cloudflare@1.0.0 build
-> next build
-
-   Γû▓ Next.js 15.5.2
-
-   Creating an optimized production build ...
