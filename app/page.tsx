@@ -78,15 +78,18 @@ export default function Dashboard() {
 function UserManagement({ onEdit, refreshTrigger }: any) {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setUsers(data);
-    } catch (e) {
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Failed to load users");
     }
     setLoading(false);
   };
@@ -133,6 +136,10 @@ function UserManagement({ onEdit, refreshTrigger }: any) {
       
       {loading ? (
         <p>Loading users...</p>
+      ) : error ? (
+        <div style={{ color: "#ff4444", padding: "10px", background: "rgba(255,0,0,0.1)", borderRadius: "5px" }}>
+          {error}
+        </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
@@ -261,17 +268,27 @@ function UserModal({ user, onClose, onSave }: any) {
 function SettingsPanel() {
   const [settingsData, setSettingsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [masterUrl, setMasterUrl] = useState("");
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const res = await fetch("/api/admin/settings");
-      const data = await res.json();
-      setSettingsData(data);
-      const master = data.find((s: any) => s.key === "master_playlist");
-      if (master) setMasterUrl(master.value);
-      setLoading(false);
+      setLoading(true);
+      try {
+        const res = await fetch("/api/admin/settings");
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const settingsArray = Array.isArray(data) ? data : [];
+        setSettingsData(settingsArray);
+        const master = settingsArray.find((s: any) => s.key === "master_playlist");
+        if (master) setMasterUrl(master.value);
+      } catch (e: any) {
+        console.error("Failed to fetch settings:", e);
+        setError(e.message || "Failed to load settings");
+      } finally {
+        setLoading(false);
+      }
     };
     fetchSettings();
   }, []);
@@ -312,6 +329,11 @@ function SettingsPanel() {
     <div>
       <h3 style={{ marginBottom: "20px" }}>Server Settings</h3>
       {loading ? <p>Loading...</p> : (
+        error ? (
+          <div style={{ color: "#ff4444", padding: "10px", background: "rgba(255,0,0,0.1)", borderRadius: "5px" }}>
+            {error}. Make sure the D1 database is correctly bound and migrations have been run.
+          </div>
+        ) : (
         <>
           <div className="input-group">
             <label>Master Playlist URL (Global Default)</label>
@@ -340,16 +362,19 @@ function SettingsPanel() {
 function PlaylistManager({ onEdit, refreshTrigger }: any) {
   const [channels, setChannels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState("");
 
   const fetchChannels = async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/channels");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setChannels(data);
-    } catch (e) {
+      setChannels(Array.isArray(data) ? data : []);
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || "Failed to load channels");
     }
     setLoading(false);
   };
@@ -438,6 +463,10 @@ function PlaylistManager({ onEdit, refreshTrigger }: any) {
 
       {loading ? (
         <p>Loading channels...</p>
+      ) : error ? (
+        <div style={{ color: "#ff4444", padding: "10px", background: "rgba(255,0,0,0.1)", borderRadius: "5px" }}>
+          {error}
+        </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table>
